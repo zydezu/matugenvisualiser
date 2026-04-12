@@ -1,4 +1,5 @@
-# A UI for Matugen Built with Textual
+# Matugen Visualiser
+A UI for Matugen Built with Textual
 
 <img width="3457" height="1585" alt="matugen" src="https://github.com/user-attachments/assets/d8448e20-25c4-42a7-b89f-1baab6773934" />
 
