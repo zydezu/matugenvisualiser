@@ -142,46 +142,12 @@ def fg_for(bg: str) -> str:
 class BrowseButton(Static):
     """Opens file picker."""
 
-    DEFAULT_CSS = """
-    BrowseButton {
-        background: #222230;
-        color: #e0e0f0;
-        border: tall #2a2a38;
-        width: auto;
-        padding: 0 2;
-        content-align: center middle;
-        height: 3;
-        margin-right: 2;
-    }
-    BrowseButton:hover {
-        background: #333348;
-    }
-    """
-
     def on_click(self) -> None:
         self.app.action_browse()
 
 
 class GenerateButton(Static):
     """Clickable generate button."""
-
-    DEFAULT_CSS = """
-    GenerateButton {
-        background: #3a3aff;
-        color: #ffffff;
-        border: tall #5555ff;
-        width: auto;
-        padding: 0 2;
-        content-align: center middle;
-        height: 3;
-    }
-    GenerateButton:hover {
-        background: #5555ff;
-    }
-    GenerateButton:focus {
-        border: tall white;
-    }
-    """
 
     def __init__(self, label: str = "▶  Generate", id: str | None = None) -> None:
         self._label = label
@@ -196,20 +162,6 @@ class GenerateButton(Static):
 
 class Swatch(Static):
     """A single color swatch — click to copy hex."""
-
-    DEFAULT_CSS = """
-    Swatch {
-        width: 12;
-        height: 5;
-        content-align: center middle;
-        text-align: center;
-        margin: 0;
-        border: tall transparent;
-    }
-    Swatch:hover {
-        border: tall white;
-    }
-    """
 
     def __init__(self, role: str, hex_val: str) -> None:
         self.role = role
@@ -230,20 +182,6 @@ class Swatch(Static):
 class SwatchGroup(Vertical):
     """A labeled row of swatches for one color group."""
 
-    DEFAULT_CSS = """
-    SwatchGroup {
-        height: auto;
-    }
-    SwatchGroup > Label {
-        color: $text-muted;
-        text-style: bold;
-        margin-bottom: 0;
-    }
-    SwatchGroup > Horizontal {
-        height: auto;
-    }
-    """
-
     def __init__(self, name: str, colors: dict[str, str]) -> None:
         super().__init__()
         self.group_name = name
@@ -257,82 +195,7 @@ class SwatchGroup(Vertical):
 
 
 class MatugenApp(App):
-    CSS = """
-    Screen {
-        background: #0d0d0f;
-    }
-
-    #controls {
-        height: auto;
-        background: #111116;
-        padding: 1 2;
-        border-bottom: tall #1e1e2e;
-    }
-
-    #controls Horizontal {
-        height: auto;
-        align: left middle;
-    }
-
-    #controls Label {
-        color: #666680;
-        width: auto;
-        padding: 0 1;
-        content-align: left middle;
-    }
-
-    #path-input {
-        width: 40;
-        background: #1a1a22;
-        border: tall #2a2a38;
-        color: #e0e0f0;
-        margin-right: 5;
-    }
-
-    #path-input:focus {
-        border: tall #5555ff;
-    }
-
-    #scheme-select {
-        width: 32;
-        background: #1a1a22;
-        border: tall #2a2a38;
-        color: #e0e0f0;
-        margin-right: 5;
-    }
-
-    #scheme-select:focus {
-        border: tall #5555ff;
-    }
-
-    #idx-input {
-        width: 10;
-        background: #1a1a22;
-        border: tall #2a2a38;
-        color: #e0e0f0;
-        margin-right: 5;
-    }
-
-    #idx-input:focus {
-        border: tall #5555ff;
-    }
-
-    #swatch-area {
-        padding: 1 2;
-    }
-
-    #status {
-        color: #444460;
-        padding: 0 2;
-        height: 1;
-    }
-
-    .palette-header {
-        color: #8888aa;
-        text-style: bold;
-        padding: 0 1 1 1;
-    }
-    """
+    CSS_PATH = "visualiser.tcss"
 
     TITLE = "Matugen Colour Visualiser"
 

@@ -10,3 +10,4 @@ How to run: Install the required python packages in `requirements.txt` and run `
 - [ ] Visualiser images
 - [ ] Save a default config
 - [ ] Save previous configurations as history
+- [ ] Add an video demonstration to README.md
