@@ -18,7 +18,12 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Label, Select, Static
 from textual_fspicker import FileOpen, Filters
 
-DEFAULT_IMAGE_PATH = "/home/zy/Pictures/archive/wallpapers/"
+
+def strip_ansi(s: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", s)
+
+
+DEFAULT_IMAGE_PATH = "~/Pictures/"
 
 SCHEMES = [
     (s, s)
@@ -92,7 +97,7 @@ def run_matugen(
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if r.returncode != 0:
-            return {"error": r.stderr.strip() or "matugen exited non-zero"}
+            return {"error": strip_ansi(r.stderr.strip()) or "matugen exited non-zero"}
         start = r.stdout.find("{")
         end = r.stdout.rfind("}") + 1
         return json.loads(r.stdout[start:end])
@@ -194,11 +199,11 @@ class Swatch(Static):
 
     DEFAULT_CSS = """
     Swatch {
-        width: 14;
+        width: 12;
         height: 5;
         content-align: center middle;
         text-align: center;
-        margin: 0 1 1 0;
+        margin: 0;
         border: tall transparent;
     }
     Swatch:hover {
@@ -228,17 +233,14 @@ class SwatchGroup(Vertical):
     DEFAULT_CSS = """
     SwatchGroup {
         height: auto;
-        margin-bottom: 1;
     }
     SwatchGroup > Label {
         color: $text-muted;
         text-style: bold;
         margin-bottom: 0;
-        padding-left: 1;
     }
     SwatchGroup > Horizontal {
         height: auto;
-        padding-left: 1;
     }
     """
 
@@ -335,18 +337,20 @@ class MatugenApp(App):
     TITLE = "Matugen Colour Visualiser"
 
     BINDINGS = [
-        Binding("ctrl+b", "browse", "Browse", show=False),
-        Binding("ctrl+g", "generate", "Generate", show=False),
+        Binding("ctrl+b", "browse", "Browse", show=True),
+        Binding("ctrl+g", "generate", "Generate", show=True),
         Binding("ctrl+q", "quit", "Quit", show=False),
     ]
 
     status_text: reactive[str] = reactive(
-        "Select an image and press Ctrl+G or Enter to generate."
+        "Select an image (CTRL+B), then press Ctrl+G or Enter to generate."
     )
 
     def __init__(self, initial_path: str = "") -> None:
         super().__init__()
         self.initial_path = initial_path
+        self.current_path = initial_path
+        self.starting_up = True
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
@@ -354,13 +358,18 @@ class MatugenApp(App):
             with Horizontal():
                 yield Label("Image")
                 yield Input(
-                    placeholder="/path/to/image.png",
-                    value=self.initial_path,
+                    placeholder="~/Pictures/image.png",
+                    value=self.current_path,
                     id="path-input",
                 )
                 yield BrowseButton("󰏖  Browse", id="browse-btn")
                 yield Label("Scheme")
-                yield Select(SCHEMES, value="scheme-tonal-spot", id="scheme-select")
+                yield Select(
+                    SCHEMES,
+                    value="scheme-tonal-spot",
+                    id="scheme-select",
+                    allow_blank=False,
+                )
                 yield Label("Idx")
                 yield Input(value="0", id="idx-input")
                 yield GenerateButton("▶  Preview", id="preview-btn")
@@ -372,7 +381,7 @@ class MatugenApp(App):
     def action_browse(self) -> None:
         self.push_screen(
             FileOpen(
-                DEFAULT_IMAGE_PATH,
+                self.current_path,
                 filters=Filters(
                     (
                         "Images",
@@ -390,12 +399,19 @@ class MatugenApp(App):
     def _on_file_selected(self, path) -> None:
         if path is not None:
             self.query_one("#path-input", Input).value = str(path)
+            self.current_path = str(path.parent)
+            print(self.current_path)
+            self.action_preview()
 
     def watch_status_text(self, val: str) -> None:
         self.query_one("#status", Label).update(val)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self.action_generate()
+
+    def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == "scheme-select":
+            self.action_preview()
 
     def action_generate(self) -> None:
         path = self.query_one("#path-input", Input).value.strip()
@@ -419,11 +435,15 @@ class MatugenApp(App):
             self.status_text = "⚠  Index must be an integer."
             return
 
-        self.status_text = "⏳  Running matugen…"
+        self.status_text = "⏳  Running matugen..."
         self._clear_swatches()
         self._run_matugen(expanded, scheme_val, idx)
 
     def action_preview(self) -> None:
+        if self.starting_up:
+            self.starting_up = False
+            return
+
         path = self.query_one("#path-input", Input).value.strip()
         if not path:
             self.status_text = "⚠  Please enter an image path."
@@ -445,7 +465,8 @@ class MatugenApp(App):
             self.status_text = "⚠  Index must be an integer."
             return
 
-        self.status_text = "⏳  Running preview…"
+        self.status_text = "⏳  Running preview..."
+        self._clear_swatches()
         self._run_matugen(expanded, scheme_val, idx, dry_run=True)
 
     @work(thread=True)
@@ -457,9 +478,10 @@ class MatugenApp(App):
 
     def _on_result(self, data: dict, scheme: str) -> None:
         if "error" in data:
-            self.status_text = f"✖  {data['error']}"
+            err = strip_ansi(data["error"])
+            self.status_text = f"✖  {err}"
             area = self.query_one("#swatch-area", ScrollableContainer)
-            area.mount(Label(f"[red]{data['error']}[/red]"))
+            area.mount(Label(f"[red]{err}[/red]"))
             return
 
         colors = extract_colors(data, "dark")
@@ -497,4 +519,7 @@ class MatugenApp(App):
 
 if __name__ == "__main__":
     initial = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_IMAGE_PATH
-    MatugenApp(initial_path=initial).run()
+    if "--serve" in sys.argv:
+        MatugenApp(initial_path=initial).run()
+    else:
+        MatugenApp(initial_path=initial).run()

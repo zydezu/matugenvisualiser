@@ -7,6 +7,6 @@ How to run: Install the required python packages in `requirements.txt` and run `
 
 ### To-Do
 - [x] Make a preview and apply button
-- [ ] Visualise images
+- [ ] Visualiser images
 - [ ] Save a default config
 - [ ] Save previous configurations as history
