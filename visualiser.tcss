@@ -1,80 +1,70 @@
 Screen {
     background: #0d0d0f;
 }
-
 #controls {
     height: auto;
     background: #111116;
     padding: 1 2;
-    border-bottom: tall #1e1e2e;
+    border-bottom: tall #1a1a22;
 }
-
 #controls Horizontal {
     height: auto;
     align: left middle;
 }
-
 #controls Label {
     color: #666680;
     width: auto;
     padding: 0 1;
     content-align: left middle;
 }
-
 #path-input {
     width: 40;
     background: #1a1a22;
     border: tall #2a2a38;
     color: #e0e0f0;
-    margin-right: 5;
+    margin-right: 2;
 }
-
 #path-input:focus {
     border: tall #5555ff;
 }
-
 #scheme-select {
     width: 32;
+    margin-right: 2;
+}
+SelectCurrent {
     background: #1a1a22;
     border: tall #2a2a38;
     color: #e0e0f0;
-    margin-right: 5;
+    height: 3;
 }
-
-#scheme-select:focus {
+SelectCurrent:focus {
     border: tall #5555ff;
 }
-
 #idx-input {
     width: 10;
     background: #1a1a22;
     border: tall #2a2a38;
     color: #e0e0f0;
-    margin-right: 5;
+    margin-right: 2;
 }
-
 #idx-input:focus {
     border: tall #5555ff;
 }
-
 #swatch-area {
     padding: 1 2;
 }
-
 #status {
     color: #444460;
     padding: 0 2;
     height: 1;
 }
-
 .palette-header {
     color: #8888aa;
     text-style: bold;
     padding: 0 1 1 1;
 }
-
 BrowseButton {
-    background: #222230;
+    background: #1a1a22;
     color: #e0e0f0;
     border: tall #2a2a38;
     width: auto;
@@ -83,29 +73,25 @@ BrowseButton {
     height: 3;
     margin-right: 2;
 }
-
 BrowseButton:hover {
-    background: #333348;
+    background: #2a2a38;
 }
-
 GenerateButton {
-    background: #3a3aff;
-    color: #ffffff;
-    border: tall #5555ff;
+    background: #1a1a22;
+    color: #e0e0f0;
+    border: tall #2a2a38;
     width: auto;
     padding: 0 2;
     content-align: center middle;
     height: 3;
+    margin-left: 2;
 }
-
 GenerateButton:hover {
-    background: #5555ff;
+    background: #2a2a38;
 }
-
 GenerateButton:focus {
-    border: tall white;
+    border: tall #5555ff;
 }
-
 Swatch {
     width: 12;
     height: 5;
@@ -114,21 +100,17 @@ Swatch {
     margin: 0;
     border: tall transparent;
 }
-
 Swatch:hover {
     border: tall white;
 }
-
 SwatchGroup {
     height: auto;
 }
-
 SwatchGroup > Label {
     color: $text-muted;
     text-style: bold;
     margin-bottom: 0;
 }
-
 SwatchGroup > Horizontal {
     height: auto;
 }

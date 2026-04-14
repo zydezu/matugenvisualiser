@@ -216,7 +216,6 @@ class MatugenApp(App):
         self.starting_up = True
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=False)
         with Vertical(id="controls"):
             with Horizontal():
                 yield Label("Image")
