@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pexpect
 import pyperclip
 from textual import work
 from textual.app import App, ComposeResult
@@ -139,6 +140,24 @@ def fg_for(bg: str) -> str:
     return "#ffffff" if luminance(bg) < 0.179 else "#000000"
 
 
+def get_matugen_color_count(
+    image_path: str, scheme_type: str = "scheme-tonal-spot"
+) -> dict:
+    cmd = f"matugen image {image_path} -t {scheme_type} --json hex --dry-run"
+
+    child = pexpect.spawn(cmd, encoding="utf-8", timeout=10)
+    child.expect("Enter to select:")
+    child.sendcontrol("c")
+    child.expect(pexpect.EOF)
+
+    colors = re.findall(r"#[0-9a-fA-F]{6}", child.before)
+
+    return {
+        "count": len(colors),
+        "colors": colors,
+    }
+
+
 class BrowseButton(Static):
     """Opens file picker."""
 
@@ -154,14 +173,14 @@ class GenerateButton(Static):
         super().__init__(label, id=id)
 
     def on_click(self) -> None:
-        if self.id == "preview-btn":
-            self.app.action_preview()
+        if self.id == "apply-btn":
+            self.app.action_apply()
         else:
             self.app.action_generate()
 
 
 class Swatch(Static):
-    """A single color swatch — click to copy hex."""
+    """A single color swatch."""
 
     def __init__(self, role: str, hex_val: str) -> None:
         self.role = role
@@ -208,6 +227,7 @@ class MatugenApp(App):
     status_text: reactive[str] = reactive(
         "Select an image (CTRL+B), then press Ctrl+G or Enter to generate."
     )
+    idx_count: reactive[int] = reactive(5)
 
     def __init__(self, initial_path: str = "") -> None:
         super().__init__()
@@ -224,7 +244,7 @@ class MatugenApp(App):
                     value=self.current_path,
                     id="path-input",
                 )
-                yield BrowseButton("󰏖  Browse", id="browse-btn")
+                yield BrowseButton("🗁  Browse", id="browse-btn")
                 yield Label("Scheme")
                 yield Select(
                     SCHEMES,
@@ -233,9 +253,14 @@ class MatugenApp(App):
                     allow_blank=False,
                 )
                 yield Label("Idx")
-                yield Input(value="0", id="idx-input")
-                yield GenerateButton("▶  Preview", id="preview-btn")
-                yield GenerateButton("▶  Apply", id="generate-btn")
+                yield Select(
+                    [("0", "0")],
+                    value="0",
+                    id="idx-select",
+                    allow_blank=False,
+                )
+                yield GenerateButton("▶  Preview", id="generate-btn")
+                yield GenerateButton("▶  Apply", id="apply-btn")
         yield Label("", id="status")
         yield ScrollableContainer(id="swatch-area")
         yield Footer()
@@ -261,18 +286,61 @@ class MatugenApp(App):
     def _on_file_selected(self, path) -> None:
         if path is not None:
             self.query_one("#path-input", Input).value = str(path)
+            self.query_one("#idx-select", Select).value = "0"
             self.current_path = str(path.parent)
             print(self.current_path)
+            self.update_idx_options()
+            self.starting_up = False
             self.action_preview()
 
     def watch_status_text(self, val: str) -> None:
         self.query_one("#status", Label).update(val)
 
+    def update_idx_options(self) -> None:
+        if self.starting_up:
+            return
+        path = self.query_one("#path-input", Input).value.strip()
+        if not path:
+            return
+        scheme_val = self.query_one("#scheme-select", Select).value
+        if not path or scheme_val is Select.BLANK:
+            return
+        expanded = str(Path(path).expanduser())
+        if not Path(expanded).exists():
+            return
+
+        try:
+            result = get_matugen_color_count(expanded, scheme_val)
+            count = result.get("count", 0)
+            print(f"DEBUG: Color count = {count}, colors = {result.get('colors', [])}")
+            self.idx_count = min(count, 5) if count > 0 else 5
+            options = [(str(i), str(i)) for i in range(self.idx_count)]
+            select = self.query_one("#idx-select", Select)
+            select.set_options(options)
+            if select.value not in [opt[0] for opt in options]:
+                select.value = options[0][0]
+        except Exception as e:
+            self.idx_count = 5
+            options = [(str(i), str(i)) for i in range(5)]
+            select = self.query_one("#idx-select", Select)
+            select.set_options(options)
+            if select.value not in [opt[0] for opt in options]:
+                select.value = "0"
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self.action_generate()
 
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "path-input" and not self.starting_up:
+            self.update_idx_options()
+
     def on_select_changed(self, event: Select.Changed) -> None:
+        if self.starting_up:
+            return
         if event.select.id == "scheme-select":
+            self.update_idx_options()
+            self.action_preview()
+        elif event.select.id == "idx-select":
             self.action_preview()
 
     def action_generate(self) -> None:
@@ -290,11 +358,14 @@ class MatugenApp(App):
             self.status_text = "⚠  Please select a scheme."
             return
 
-        idx_raw = self.query_one("#idx-input", Input).value.strip()
+        idx_raw = self.query_one("#idx-select", Select).value
         try:
             idx = int(idx_raw)
         except ValueError:
             self.status_text = "⚠  Index must be an integer."
+            return
+        if idx < 0 or idx >= self.idx_count:
+            self.status_text = f"⚠  Index must be 0-{self.idx_count - 1}."
             return
 
         self.status_text = "⏳  Running matugen..."
@@ -302,10 +373,6 @@ class MatugenApp(App):
         self._run_matugen(expanded, scheme_val, idx)
 
     def action_preview(self) -> None:
-        if self.starting_up:
-            self.starting_up = False
-            return
-
         path = self.query_one("#path-input", Input).value.strip()
         if not path:
             self.status_text = "⚠  Please enter an image path."
@@ -320,16 +387,22 @@ class MatugenApp(App):
             self.status_text = "⚠  Please select a scheme."
             return
 
-        idx_raw = self.query_one("#idx-input", Input).value.strip()
+        idx_raw = self.query_one("#idx-select", Select).value
         try:
             idx = int(idx_raw)
         except ValueError:
             self.status_text = "⚠  Index must be an integer."
             return
+        if idx < 0 or idx >= self.idx_count:
+            self.status_text = f"⚠  Index must be 0-{self.idx_count - 1}."
+            return
 
         self.status_text = "⏳  Running preview..."
         self._clear_swatches()
         self._run_matugen(expanded, scheme_val, idx, dry_run=True)
+
+    def action_apply(self) -> None:
+        pass
 
     @work(thread=True)
     def _run_matugen(

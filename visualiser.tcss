@@ -40,6 +40,10 @@ SelectCurrent {
 SelectCurrent:focus {
     border: tall #5555ff;
 }
+#idx-select {
+    width: 10;
+    margin-right: 2;
+}
 #idx-input {
     width: 10;
     background: #1a1a22;
@@ -77,9 +81,9 @@ BrowseButton:hover {
     background: #2a2a38;
 }
 GenerateButton {
-    background: #1a1a22;
-    color: #e0e0f0;
-    border: tall #2a2a38;
+    background: #3a3aff;
+    color: #ffffff;
+    border: tall #5555ff;
     width: auto;
     padding: 0 2;
     content-align: center middle;
@@ -87,10 +91,10 @@ GenerateButton {
     margin-left: 2;
 }
 GenerateButton:hover {
-    background: #2a2a38;
+    background: #5555ff;
 }
 GenerateButton:focus {
-    border: tall #5555ff;
+    border: tall white;
 }
 Swatch {
     width: 12;
