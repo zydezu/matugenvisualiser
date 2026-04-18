@@ -90,6 +90,13 @@ GenerateButton {
     height: 3;
     margin-left: 2;
 }
+#apply-btn {
+    background: #22aa44;
+    border: tall #44cc66;
+}
+#apply-btn:hover {
+    background: #44cc66;
+}
 GenerateButton:hover {
     background: #5555ff;
 }
