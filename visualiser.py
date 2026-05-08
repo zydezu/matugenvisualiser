@@ -369,7 +369,8 @@ class MatugenApp(App):
             self.status_text = f"⚠  Index must be 0-{self.idx_count - 1}."
             return
 
-        self.status_text = "⏳  Running matugen..."
+        self.status_text = "⏳  Generating preview..."
+        changewallpaper.change_wallpaper(path)
         self._clear_swatches()
         self._run_matugen(expanded, scheme_val, idx)
 
@@ -398,15 +399,17 @@ class MatugenApp(App):
             self.status_text = f"⚠  Index must be 0-{self.idx_count - 1}."
             return
 
-        self.status_text = "⏳  Running preview..."
+        self.status_text = "⏳  Generating matugen colours..."
         self._clear_swatches()
         self._run_matugen(expanded, scheme_val, idx, dry_run=True)
 
     def action_apply(self) -> None:
-        self.action_preview()
         path = self.query_one("#path-input", Input).value.strip()
         if path:
+            self.status_text = "⏳  Changing wallpaper..."
             changewallpaper.set_waypaper_wallpaper(path)
+            changewallpaper.change_wallpaper(path)
+        self.action_preview()
 
     @work(thread=True)
     def _run_matugen(

@@ -1,6 +1,7 @@
 import configparser
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 
@@ -8,23 +9,22 @@ def change_wallpaper(path: str) -> dict:
     expanded = str(Path(path).expanduser())
     if not Path(expanded).exists():
         return {"error": f"File not found: {path}"}
-
     if not shutil.which("swaybg"):
-        return {"error": "swaybg not found — is it installed and on your PATH?"}
+        return {"error": "swaybg not found"}
 
-    try:
-        r = subprocess.run(["pgrep", "swaybg"], capture_output=True)
-        if r.returncode == 0:
-            subprocess.run(["pkill", "swaybg"], capture_output=True)
+    time.sleep(0.2)
 
-        subprocess.Popen(
-            ["swaybg", "-i", expanded, "-m", "fill"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        return {"success": f"Wallpaper set to {expanded} using swaybg"}
-    except Exception as e:
-        return {"error": str(e)}
+    proc = subprocess.Popen(
+        ["swaybg", "-i", expanded, "-m", "fill"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        start_new_session=True,  # detach from Python process
+    )
+    time.sleep(0.2)
+    if proc.poll() is not None:
+        err = proc.stderr.read().decode().strip()
+        return {"error": f"swaybg exited: {err}"}
+    return {"success": f"Wallpaper set to {expanded}"}
 
 
 def set_waypaper_wallpaper(path: str) -> dict:
