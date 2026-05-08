@@ -19,10 +19,7 @@ from textual.reactive import reactive
 from textual.widgets import Footer, Header, Input, Label, Select, Static
 from textual_fspicker import FileOpen, Filters
 
-
-def strip_ansi(s: str) -> str:
-    return re.sub(r"\x1b\[[0-9;]*m", "", s)
-
+import changewallpaper
 
 DEFAULT_IMAGE_PATH = "~/Pictures/"
 
@@ -112,6 +109,10 @@ def run_matugen(
         return {"error": str(e)}
 
 
+def strip_ansi(s: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*m", "", s)
+
+
 def extract_colors(data: dict, mode: str = "dark") -> dict:
     colors: dict[str, str] = {}
     palette = data.get("colors", {})
@@ -176,7 +177,7 @@ class GenerateButton(Static):
         if self.id == "apply-btn":
             self.app.action_apply()
         else:
-            self.app.action_generate()
+            self.app.action_preview()
 
 
 class Swatch(Static):
@@ -291,7 +292,7 @@ class MatugenApp(App):
             print(self.current_path)
             self.update_idx_options()
             self.starting_up = False
-            self.action_preview()
+            self.action_generate()
 
     def watch_status_text(self, val: str) -> None:
         self.query_one("#status", Label).update(val)
@@ -339,11 +340,11 @@ class MatugenApp(App):
             return
         if event.select.id == "scheme-select":
             self.update_idx_options()
-            self.action_preview()
+            self.action_generate()
         elif event.select.id == "idx-select":
-            self.action_preview()
+            self.action_generate()
 
-    def action_generate(self) -> None:
+    def action_preview(self) -> None:
         path = self.query_one("#path-input", Input).value.strip()
         if not path:
             self.status_text = "⚠  Please enter an image path."
@@ -372,7 +373,7 @@ class MatugenApp(App):
         self._clear_swatches()
         self._run_matugen(expanded, scheme_val, idx)
 
-    def action_preview(self) -> None:
+    def action_generate(self) -> None:
         path = self.query_one("#path-input", Input).value.strip()
         if not path:
             self.status_text = "⚠  Please enter an image path."
@@ -402,7 +403,10 @@ class MatugenApp(App):
         self._run_matugen(expanded, scheme_val, idx, dry_run=True)
 
     def action_apply(self) -> None:
-        pass
+        self.action_preview()
+        path = self.query_one("#path-input", Input).value.strip()
+        if path:
+            changewallpaper.set_waypaper_wallpaper(path)
 
     @work(thread=True)
     def _run_matugen(
